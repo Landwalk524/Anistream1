@@ -1,11 +1,11 @@
 'use server'
-import { ANIME, PROVIDERS_LIST } from "@consumet/extensions"
+import { ANIME, META, PROVIDERS_LIST } from "@consumet/extensions"
 import { IAnimeInfo, StreamingServers } from "./types";
 import cachified, { Cache, CacheEntry, totalTtl } from "@epic-web/cachified";
 import { LRUCache } from "lru-cache";
 
-// AnimeUnity API instance
-const animeunity = new ANIME.AnimeUnity();
+// Using AniMixPlay as metadata provider (Anilist replacement)
+const animixplay = new META.AniMixPlay();
 const zoro = new ANIME.Zoro();
 const gogo = new ANIME.Gogoanime();
 
@@ -32,11 +32,11 @@ export const getAnimeAdvancedSearch = (
     page?: number,
 ) => {
     return cachified({
-        key: `animeunity-advanced-search-${query}-${page}`,
+        key: `animixplay-advanced-search-${query}-${page}`,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animeunity.search(query, page);
+                const res = await animixplay.search(query, page);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -54,13 +54,13 @@ export const getAnimeAdvancedSearch = (
 
 export const getTrendingAnime = () => {
     return cachified({
-        key: `animeunity-trending-anime`,
+        key: `animixplay-trending-anime`,
         cache: lru,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         async getFreshValue() {
             try {
-                const res = await animeunity.fetchRecentEpisodes();
+                const res = await animixplay.fetchTrendingAnime();
                 return res;
             } catch (error) {
                 console.error(error);
@@ -120,13 +120,13 @@ export const getAnimeRecentEpisodes = async (page?: number) => {
 
 export const getAnimePopular = () => {
     return cachified({
-        key: `animeunity-popular-anime`,
+        key: `animixplay-popular-anime`,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animeunity.fetchRecentEpisodes();
+                const res = await animixplay.fetchPopularAnime();
                 return res;
             } catch (error) {
                 console.error(error);
@@ -209,13 +209,13 @@ export const getLatestComplete = () => {
 
 export const getAnimeInfo = (id: string) => {
     return cachified({
-        key: `animeunity-info-${id}`,
+        key: `animixplay-info-${id}`,
         ttl: 1000 * 60 * 60 * 24 * 7,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 30,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animeunity.fetchAnimeInfo(id);
+                const res = await animixplay.fetchAnimeInfo(id);
                 return res
             } catch (error) {
                 console.error(error);
@@ -227,13 +227,13 @@ export const getAnimeInfo = (id: string) => {
 
 export const getAnimeEpisodeList = async (id: string, fetchFiller?: boolean) => {
     const results = await cachified({
-        key: `animeunity-episode-${id}-${fetchFiller}`,
+        key: `animixplay-episode-${id}-${fetchFiller}`,
         ttl: 1000 * 60 * 60,
         staleWhileRevalidate: 1000 * 60 * 60 * 24,
         cache: lru,
         getFreshValue: async () => {
             try {
-                const res = await animeunity.fetchEpisodes(id);
+                const res = await animixplay.fetchEpisodesListById(id);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -246,13 +246,13 @@ export const getAnimeEpisodeList = async (id: string, fetchFiller?: boolean) => 
 
 export const getEpisodeServers = async (id: string) => {
     return cachified({
-        key: `animeunity-episode-servers-${id}`,
+        key: `animixplay-episode-servers-${id}`,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animeunity.fetchEpisodeServers(id);
+                const res = await animixplay.fetchEpisodeServers(id);
                 return res;
             } catch (error) {
                 console.error(error);
