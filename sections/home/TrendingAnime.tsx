@@ -1,5 +1,5 @@
 import { Skeleton } from "@nextui-org/react";
-import { getAnimeHomePage } from "@/services/aniwatch/api";
+import { getTrendingAnime } from "@/services/consumet/api";
 import { CustomSlider, PopularCard } from "@/components";
 
 export function TrendingAnimeLoading() {
@@ -7,14 +7,29 @@ export function TrendingAnimeLoading() {
 }
 
 export default async function TrendingAnime() {
-  const animeHome = await getAnimeHomePage();
+  try {
+    const trendingData = await getTrendingAnime();
+    
+    if (!trendingData || !trendingData.results || trendingData.results.length === 0) {
+      return <TrendingAnimeLoading />;
+    }
 
-  if (!animeHome) return <TrendingAnimeLoading />;
-  return (
-    <CustomSlider>
-      {animeHome.spotlightAnimes.map((anime, index) => (
-        <PopularCard key={index} anime={anime} />
-      ))}
-    </CustomSlider>
-  );
+    return (
+      <CustomSlider>
+        {trendingData.results.slice(0, 10).map((anime: any, index: number) => (
+          <PopularCard key={index} anime={{
+            id: anime.id,
+            title: anime.title,
+            image: anime.image,
+            cover: anime.cover,
+            status: anime.status,
+            rating: anime.rating,
+          }} />
+        ))}
+      </CustomSlider>
+    );
+  } catch (error) {
+    console.error("Error fetching trending anime:", error);
+    return <TrendingAnimeLoading />;
+  }
 }
