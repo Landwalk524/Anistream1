@@ -1,11 +1,10 @@
 'use server'
-import { ANIME, META, PROVIDERS_LIST } from "@consumet/extensions"
+import { ANIME } from "@consumet/extensions"
 import { IAnimeInfo, StreamingServers } from "./types";
 import cachified, { Cache, CacheEntry, totalTtl } from "@epic-web/cachified";
 import { LRUCache } from "lru-cache";
 
-// Using AniMixPlay as metadata provider (Anilist replacement)
-const animixplay = new META.AniMixPlay();
+// Using Zoro and Gogoanime as primary providers (they work)
 const zoro = new ANIME.Zoro();
 const gogo = new ANIME.Gogoanime();
 
@@ -32,11 +31,11 @@ export const getAnimeAdvancedSearch = (
     page?: number,
 ) => {
     return cachified({
-        key: `animixplay-advanced-search-${query}-${page}`,
+        key: `zoro-advanced-search-${query}-${page}`,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animixplay.search(query, page);
+                const res = await zoro.search(query, page);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -54,13 +53,13 @@ export const getAnimeAdvancedSearch = (
 
 export const getTrendingAnime = () => {
     return cachified({
-        key: `animixplay-trending-anime`,
+        key: `zoro-trending-anime`,
         cache: lru,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         async getFreshValue() {
             try {
-                const res = await animixplay.fetchTrendingAnime();
+                const res = await zoro.fetchTrendingAnime();
                 return res;
             } catch (error) {
                 console.error(error);
@@ -120,13 +119,13 @@ export const getAnimeRecentEpisodes = async (page?: number) => {
 
 export const getAnimePopular = () => {
     return cachified({
-        key: `animixplay-popular-anime`,
+        key: `zoro-popular-anime`,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animixplay.fetchPopularAnime();
+                const res = await zoro.fetchAnimeList();
                 return res;
             } catch (error) {
                 console.error(error);
@@ -209,13 +208,13 @@ export const getLatestComplete = () => {
 
 export const getAnimeInfo = (id: string) => {
     return cachified({
-        key: `animixplay-info-${id}`,
+        key: `zoro-info-${id}`,
         ttl: 1000 * 60 * 60 * 24 * 7,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 30,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animixplay.fetchAnimeInfo(id);
+                const res = await zoro.fetchAnimeInfo(id);
                 return res
             } catch (error) {
                 console.error(error);
@@ -227,13 +226,13 @@ export const getAnimeInfo = (id: string) => {
 
 export const getAnimeEpisodeList = async (id: string, fetchFiller?: boolean) => {
     const results = await cachified({
-        key: `animixplay-episode-${id}-${fetchFiller}`,
+        key: `zoro-episode-${id}-${fetchFiller}`,
         ttl: 1000 * 60 * 60,
         staleWhileRevalidate: 1000 * 60 * 60 * 24,
         cache: lru,
         getFreshValue: async () => {
             try {
-                const res = await animixplay.fetchEpisodesListById(id);
+                const res = await zoro.fetchEpisodes(id);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -246,13 +245,13 @@ export const getAnimeEpisodeList = async (id: string, fetchFiller?: boolean) => 
 
 export const getEpisodeServers = async (id: string) => {
     return cachified({
-        key: `animixplay-episode-servers-${id}`,
+        key: `gogo-episode-servers-${id}`,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await animixplay.fetchEpisodeServers(id);
+                const res = await gogo.fetchEpisodeServers(id);
                 return res;
             } catch (error) {
                 console.error(error);
