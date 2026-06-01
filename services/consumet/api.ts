@@ -1,10 +1,11 @@
 'use server'
-import { ANIME, META, PROVIDERS_LIST } from "@consumet/extensions"
+import { ANIME, PROVIDERS_LIST } from "@consumet/extensions"
 import { IAnimeInfo, StreamingServers } from "./types";
 import cachified, { Cache, CacheEntry, totalTtl } from "@epic-web/cachified";
 import { LRUCache } from "lru-cache";
 
-const anilist = new META.Anilist();
+// AnimeUnity API instance
+const animeunity = new ANIME.AnimeUnity();
 const zoro = new ANIME.Zoro();
 const gogo = new ANIME.Gogoanime();
 
@@ -28,35 +29,14 @@ const lru: Cache = {
 
 export const getAnimeAdvancedSearch = (
     query?: string,
-    type?: 'ANIME' | 'MANGA',
     page?: number,
-    perPage?: number,
-    season?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL',
-    format?: 'TV' | 'TV_SHORT' | 'OVA' | 'ONA' | 'MOVIE' | 'SPECIAL' | 'MUSIC',
-    sort?: string[],
-    genres?: string[],
-    id?: string,
-    year?: number,
-    status?: 'RELEASING' | 'NOT_YET_RELEASED' | 'FINISHED' | 'CANCELLED' | 'HIATUS',
 ) => {
     return cachified({
-        key: `anilist-advanced-search-${query}-${type}-${page}-${perPage}-${season}-${format}-${sort}-${genres}-${id}-${year}-${status}`,
+        key: `animeunity-advanced-search-${query}-${page}`,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await anilist.advancedSearch(
-                    query,
-                    type,
-                    page,
-                    perPage,
-                    format,
-                    sort,
-                    genres,
-                    id,
-                    year,
-                    status,
-                    season,
-                );
+                const res = await animeunity.search(query, page);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -74,13 +54,13 @@ export const getAnimeAdvancedSearch = (
 
 export const getTrendingAnime = () => {
     return cachified({
-        key: `anilist-trending-anime`,
+        key: `animeunity-trending-anime`,
         cache: lru,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         async getFreshValue() {
             try {
-                const res = await anilist.fetchTrendingAnime();
+                const res = await animeunity.fetchRecentEpisodes();
                 return res;
             } catch (error) {
                 console.error(error);
@@ -140,13 +120,13 @@ export const getAnimeRecentEpisodes = async (page?: number) => {
 
 export const getAnimePopular = () => {
     return cachified({
-        key: `anilist-popular-anime`,
+        key: `animeunity-popular-anime`,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await anilist.fetchPopularAnime();
+                const res = await animeunity.fetchRecentEpisodes();
                 return res;
             } catch (error) {
                 console.error(error);
@@ -228,15 +208,14 @@ export const getLatestComplete = () => {
 }
 
 export const getAnimeInfo = (id: string) => {
-    const anilist = generateAnilistMeta();
     return cachified({
-        key: `anilist-info-${id}`,
+        key: `animeunity-info-${id}`,
         ttl: 1000 * 60 * 60 * 24 * 7,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 30,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await anilist.fetchAnilistInfoById(id);
+                const res = await animeunity.fetchAnimeInfo(id);
                 return res
             } catch (error) {
                 console.error(error);
@@ -248,13 +227,13 @@ export const getAnimeInfo = (id: string) => {
 
 export const getAnimeEpisodeList = async (id: string, fetchFiller?: boolean) => {
     const results = await cachified({
-        key: `anilist-episode-${id}-${fetchFiller}`,
+        key: `animeunity-episode-${id}-${fetchFiller}`,
         ttl: 1000 * 60 * 60,
         staleWhileRevalidate: 1000 * 60 * 60 * 24,
         cache: lru,
         getFreshValue: async () => {
             try {
-                const res = await anilist.fetchEpisodesListById(id, false, fetchFiller);
+                const res = await animeunity.fetchEpisodes(id);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -267,13 +246,13 @@ export const getAnimeEpisodeList = async (id: string, fetchFiller?: boolean) => 
 
 export const getEpisodeServers = async (id: string) => {
     return cachified({
-        key: `anilist-episode-servers-${id}`,
+        key: `animeunity-episode-servers-${id}`,
         ttl: 1000 * 60 * 60 * 24,
         staleWhileRevalidate: 1000 * 60 * 60 * 24 * 7,
         cache: lru,
         async getFreshValue() {
             try {
-                const res = await anilist.fetchEpisodeServers(id);
+                const res = await animeunity.fetchEpisodeServers(id);
                 return res;
             } catch (error) {
                 console.error(error);
@@ -282,19 +261,6 @@ export const getEpisodeServers = async (id: string) => {
         },
     })
 }
-
-const generateAnilistMeta = (provider?: string) => {
-    if (provider) {
-        const possibleProvider = PROVIDERS_LIST.ANIME.find(
-            (p) => p.name.toLowerCase() === provider.toLocaleLowerCase(),
-        );
-        if (!possibleProvider) {
-            throw new Error(`Provider ${provider} not found`);
-        }
-        return new META.Anilist(possibleProvider);
-    }
-    return new META.Anilist();
-};
 
 export const getEpisodeSources = (id: any, server?: string) => {
     return cachified({
@@ -313,4 +279,3 @@ export const getEpisodeSources = (id: any, server?: string) => {
         },
     });
 };
-
