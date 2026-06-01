@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getAnimeByCategory, getAnimeHomePage } from '@/services/aniwatch/api'
+import { getRecentlyAdded, getTopUpcoming, getLatestComplete } from '@/services/consumet/api'
 import { DetailCard, DetailCardLoading, Icon } from '@/components'
 
 export async function OtherAnimeLoading() {
@@ -42,43 +42,54 @@ export async function OtherAnimeLoading() {
 }
 
 export default async function OtherAnime() {
-    const [animeHome, topAiring, latestCompleted] = await Promise.all([
-        getAnimeHomePage(),
-        getAnimeByCategory('top-airing'),
-        getAnimeByCategory('completed'),
-    ])
-    if (!topAiring || !animeHome || !latestCompleted) return <OtherAnimeLoading />
-    return (
-        <div className="grid grid-cols-1 2xl:grid-cols-3 gap-2 mt-10">
-            <div>
-                <Link href='/list?category=top-airing' className='flex items-center gap-2 hover:text-primary mb-2'>
-                    <h2 className="text-xl font-semibold">Top Airing</h2>
-                    <Icon icon="formkit:arrowright" className='mt-1' fontSize={14} />
-                </Link>
-                <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-1 gap-3">
-                    {topAiring.animes.slice(0, 5).map((anime, index) => <DetailCard key={index} anime={anime} />)}
-                </div>
-            </div>
+    try {
+        const [recentlyAdded, topUpcoming, latestCompleted] = await Promise.all([
+            getRecentlyAdded(),
+            getTopUpcoming(),
+            getLatestComplete(),
+        ])
 
-            <div>
-                <Link href='/list?category=top-upcoming' className='flex items-center gap-2 hover:text-primary mb-2'>
-                    <h2 className="text-xl font-semibold">Top Upcoming</h2>
-                    <Icon icon="formkit:arrowright" className='mt-1' fontSize={14} />
-                </Link>
-                <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-1 gap-3">
-                    {animeHome.topUpcomingAnimes.slice(0, 5).map((anime, index) => <DetailCard key={index} anime={anime} />)}
-                </div>
-            </div>
+        if (!recentlyAdded || !topUpcoming || !latestCompleted) return <OtherAnimeLoading />
 
-            <div>
-                <Link href='/list?category=completed' className='flex items-center gap-2 hover:text-primary mb-2'>
-                    <h2 className="text-xl font-semibold">Completed</h2>
-                    <Icon icon="formkit:arrowright" className='mt-1' fontSize={14} />
-                </Link>
-                <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-1 gap-3">
-                    {latestCompleted.animes.slice(0, 5).map((anime, index) => <DetailCard key={index} anime={anime} />)}
+        const recentAnimes = recentlyAdded.results || [];
+        const upcomingAnimes = topUpcoming.results || [];
+        const completedAnimes = latestCompleted.results || [];
+
+        return (
+            <div className="grid grid-cols-1 2xl:grid-cols-3 gap-2 mt-10">
+                <div>
+                    <Link href='/list?category=recently-added' className='flex items-center gap-2 hover:text-primary mb-2'>
+                        <h2 className="text-xl font-semibold">Recently Added</h2>
+                        <Icon icon="formkit:arrowright" className='mt-1' fontSize={14} />
+                    </Link>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-1 gap-3">
+                        {recentAnimes.slice(0, 5).map((anime: any, index: number) => <DetailCard key={index} anime={anime} />)}
+                    </div>
+                </div>
+
+                <div>
+                    <Link href='/list?category=top-upcoming' className='flex items-center gap-2 hover:text-primary mb-2'>
+                        <h2 className="text-xl font-semibold">Top Upcoming</h2>
+                        <Icon icon="formkit:arrowright" className='mt-1' fontSize={14} />
+                    </Link>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-1 gap-3">
+                        {upcomingAnimes.slice(0, 5).map((anime: any, index: number) => <DetailCard key={index} anime={anime} />)}
+                    </div>
+                </div>
+
+                <div>
+                    <Link href='/list?category=completed' className='flex items-center gap-2 hover:text-primary mb-2'>
+                        <h2 className="text-xl font-semibold">Just Completed</h2>
+                        <Icon icon="formkit:arrowright" className='mt-1' fontSize={14} />
+                    </Link>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-1 gap-3">
+                        {completedAnimes.slice(0, 5).map((anime: any, index: number) => <DetailCard key={index} anime={anime} />)}
+                    </div>
                 </div>
             </div>
-        </div>
-    )
+        )
+    } catch (error) {
+        console.error("Error fetching other anime:", error);
+        return <OtherAnimeLoading />
+    }
 }
